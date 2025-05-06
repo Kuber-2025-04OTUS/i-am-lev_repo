@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: homework
+  name: nginx-start-script
+  labels:
+    app: nginx
+data:
+  start-script.sh : |
+    #!/bin/sh
+    rm -f /etc/nginx/conf.d/default.conf
+    cp /tmp/default.conf /etc/nginx/conf.d/default.conf
+    nginx -g "daemon off;"
