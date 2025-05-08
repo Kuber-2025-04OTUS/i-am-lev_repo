@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: homework
+  name: lession-04
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      nodeSelector:
+        app: nginx-app
+      volumes:
+      - name: homework
+        emptyDir: {}
+      - name: nginx-config
+        configMap:
+          name: custom-nginx-config
+          items:
+            - key: default.conf
+              path: default.conf
+      - name: nginx-start-script
+        configMap:
+          name: nginx-start-script
+          items:
+            - key: start-script.sh
+              path: start-script.sh
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 8000
+          command: ['sh','/script/start-script.sh']
+          volumeMounts:
+            - name: homework
+              mountPath: /homework
+            - name: nginx-config
+              mountPath: /tmp/default.conf
+              subPath: default.conf
+            - name: nginx-start-script
+              mountPath: /script/start-script.sh
+              subPath: start-script.sh
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "rm /usr/share/nginx/html/index.html && ln -s /homework/index.html /usr/share/nginx/html/index.html"]
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "if [[ -f /init/index.html ]]; then rm -f /init/index.html; fi"]
+          readinessProbe:
+            httpGet:
+               path: /
+               port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      initContainers:
+        - name: install
+          image: busybox:1.28
+          env:
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          command: ["/bin/sh", "-c"]
+          args:
+            - echo -e "<!DOCTYPE html><html><head><title>Lession 04 homework</title></head><body><h1>Nginx HomePage (" > /init/index.html;
+              printenv MY_POD_NAME >> /init/index.html;
+              echo -e ")</h1></body></html>" >> /init/index.html;
+          volumeMounts:
+          - name: homework
+            mountPath: "/init"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
