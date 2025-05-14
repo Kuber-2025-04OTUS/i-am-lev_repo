@@ -1,0 +1,9 @@
+
+apiVersion: v1
+data:
+  Readme.md: '# Readme.md file from ConfigMap'
+  Testfile.txt: Testfile.txt from ConfigMap
+kind: ConfigMap
+metadata:
+  name: lession-05-configmap
+  namespace: homework

@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: homework
+  name: lession-05  
+  annotations: 
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: homework.otus
+      http:
+        paths:
+          - path: /(homepage|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: lession-05
+                port:
+                  number: 80
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: lession-05
+                port:
+                  number: 80
