@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: homework
+  name: custom-nginx-configmap
+  labels:
+    tier: backend
+data:
+  default.conf : |
+    server {
+      listen 8000;
+    
+      location / {
+        root /usr/share/nginx/html/;
+        index index.html index.htm;
+      }
+
+      location /conf {
+        alias /usr/share/nginx/html/conf;
+        autoindex on;
+      }
+    }
+

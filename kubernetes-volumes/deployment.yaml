@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: homework
+  name: lession-05
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      nodeSelector:
+        app: nginx-app
+      volumes:
+      - name: homework-pv-storage
+        persistentVolumeClaim:
+          claimName: lession-05-pvc
+      - name: config-files
+        configMap:
+          name: lession-05-configmap 
+      - name: nginx-config
+        configMap:
+          name: custom-nginx-configmap
+          items:
+            - key: default.conf
+              path: default.conf
+      - name: nginx-start-script
+        configMap:
+          name: nginx-start-script
+          items:
+            - key: start-script.sh
+              path: start-script.sh
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 8000
+          command: ['sh','/script/start-script.sh']
+          volumeMounts:
+            - name: homework-pv-storage
+              mountPath: /homework
+            - name: config-files
+              mountPath: /homework/conf
+            - name: nginx-config
+              mountPath: /tmp/default.conf
+              subPath: default.conf
+            - name: nginx-start-script
+              mountPath: /script/start-script.sh
+              subPath: start-script.sh
+          lifecycle:
+            postStart:
+              exec:
+                command: 
+                  - /bin/sh
+                  - -c
+                  - |
+                    if [ /usr/share/nginx/html/index.html ]; then 
+                    rm /usr/share/nginx/html/index.html 
+                    fi; 
+                    ln -s /homework/index.html /usr/share/nginx/html/index.html
+                    ln -s /homework/conf /usr/share/nginx/html/
+            preStop:
+              exec:
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                  - >
+                    if [ -f /init/index.html ]; then 
+                       rm -f /init/index.html 
+                    fi
+          readinessProbe:
+            httpGet:
+               path: /
+               port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      initContainers:
+        - name: install
+          image: busybox:1.28
+          env:
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          command: ["/bin/sh", "-c"]
+          args:
+            - echo -e "<!DOCTYPE html><html><head><title>Lession 05 homework</title></head><body><h1>Nginx HomePage </h1></body></html>" > /init/index.html;
+          volumeMounts:
+          - name: homework-pv-storage
+            mountPath: "/init"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
